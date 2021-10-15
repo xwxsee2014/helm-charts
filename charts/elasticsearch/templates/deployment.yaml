@@ -1,7 +1,8 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: {{ include "elasticsearch.fullname" . }}
+  namespace: {{ include "elasticsearch.name" . }}
   labels:
     {{- include "elasticsearch.labels" . | nindent 4 }}
 spec:
@@ -22,11 +23,28 @@ spec:
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }} 
       {{- end }}
       serviceAccountName: {{ include "elasticsearch.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: increase-the-vm-max-map-count
+          image: busybox
+          command:
+          - sysctl
+          - -w
+          - vm.max_map_count=262144
+          securityContext:
+            privileged: true
+        - name: increase-the-ulimit
+          image: busybox
+          command:
+          - sh
+          - -c
+          - ulimit -n 65536
+          securityContext:
+            privileged: true
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -35,16 +53,19 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 80
+              containerPort: 9200
+              protocol: TCP
+            - name: tcp
+              containerPort: 9300
               protocol: TCP
           livenessProbe:
             httpGet:
               path: /
-              port: http
+              port: 9200
           readinessProbe:
             httpGet:
               path: /
-              port: http
+              port: 9200
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}
