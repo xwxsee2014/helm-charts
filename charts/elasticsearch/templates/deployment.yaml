@@ -7,8 +7,10 @@ metadata:
     {{- include "elasticsearch.labels" . | nindent 4 }}
 spec:
   serviceName: {{ include "elasticsearch.fullname" . }}
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if eq .Values.discoveryType "cluster" }}
   replicas: {{ .Values.replicaCount }}
+  {{- else }}
+  replicas: 1
   {{- end }}
   selector:
     matchLabels:

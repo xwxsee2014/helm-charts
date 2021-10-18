@@ -2,7 +2,7 @@ apiVersion: v2
 name: elasticsearch
 description: A Helm chart for old version Elasticsearch
 type: application
-version: 0.1.0-alpha.1
+version: 0.1.0-alpha.2
 # This is the version number of the Elasticsearch
 appVersion: "5.6.16"
 maintainers:
