@@ -27,6 +27,12 @@ xpack:
   monitoring:
     enabled: false
 
+plugins:
+  - analysis-phonetic
+  - analysis-icu
+  - analysis-kuromoji
+  - repository-s3
+
 serviceAccount:
   create: true
   annotations: {}

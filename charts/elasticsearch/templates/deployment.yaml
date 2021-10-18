@@ -56,6 +56,14 @@ spec:
           - ulimit -n 65536
           securityContext:
             privileged: true
+        - name: install-plugins
+          command:
+          - sh
+          - -c
+          - |
+            {{- range $key, $val := .Values.plugins }}
+            bin/elasticsearch-plugin install --batch $val
+            {{- end}}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
