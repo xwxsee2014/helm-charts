@@ -49,6 +49,11 @@ resources:
     cpu: 500m
     memory: 1Gi
 
+persistentVolumeClaim:
+  # support: local-storage, aws-gp2, longhorn
+  storageClass: "local-storage"
+  storageRequest: 5Gi
+
 autoscaling:
   enabled: false
   minReplicas: 1

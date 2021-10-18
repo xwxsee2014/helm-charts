@@ -29,6 +29,10 @@ spec:
       serviceAccountName: {{ include "elasticsearch.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      volumes: 
+        - name: {{ include "elasticsearch.fullname" . }}-storage
+          persistentVolumeClaim:
+            claimName: {{ include "elasticsearch.fullname" . }}
       initContainers:
         - name: increase-the-vm-max-map-count
           image: busybox
@@ -80,6 +84,9 @@ spec:
             - name: node.ingest
               value: "{{ has "ingest" .Values.nodeType }}"
             {{- end }}
+          volumeMounts:
+            - name: {{ include "elasticsearch.fullname" . }}-storage
+              mountPath: /usr/share/elasticsearch/data
           ports:
             - name: http
               containerPort: 9200
