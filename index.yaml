@@ -16,6 +16,19 @@ entries:
     version: 0.1.0
   - apiVersion: v2
     appVersion: 5.6.16
+    created: "2021-10-18T08:56:56.677670183Z"
+    description: A Helm chart for old version Elasticsearch
+    digest: 9a0ecd54c3ea281095d259f6475fd472fb22e5a3626b68c0c49f60d35136aa84
+    maintainers:
+    - email: xwxsee@gmail.com
+      name: Wenxing Xu
+    name: elasticsearch
+    type: application
+    urls:
+    - https://github.com/xwxsee2014/helm-charts/releases/download/elasticsearch-0.1.0-alpha.4/elasticsearch-0.1.0-alpha.4.tgz
+    version: 0.1.0-alpha.4
+  - apiVersion: v2
+    appVersion: 5.6.16
     created: "2021-10-18T08:49:46.021719816Z"
     description: A Helm chart for old version Elasticsearch
     digest: 0a2cda724262f7c1f6114b77e6d7702dcd90b6120c25272351e5feb1d10127e0
@@ -53,4 +66,4 @@ entries:
     urls:
     - https://github.com/xwxsee2014/helm-charts/releases/download/elasticsearch-0.1.0-alpha.1/elasticsearch-0.1.0-alpha.1.tgz
     version: 0.1.0-alpha.1
-generated: "2021-10-18T08:49:46.021760417Z"
+generated: "2021-10-18T08:56:56.677718883Z"
