@@ -19,7 +19,7 @@ nodeType:
   - data
   - ingest
 
-javaOpts: "-Xms1g -Xmx2g"
+javaOpts: "-Xms2g -Xmx2g"
 
 xpack:
   security:

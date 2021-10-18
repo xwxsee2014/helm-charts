@@ -73,8 +73,8 @@ spec:
               value: {{ .Values.javaOpts | quote }}
             - name: cluster.name
               value: "{{ include "elasticsearch.name" . }}"
-            {{- if eq .Values.discoveryType "cluster" }}
             {{- list .Values.xpack "xpack" | include "recurseFlattenMap" | trim | nindent 12 }}
+            {{- if eq .Values.discoveryType "cluster" }}
             - name: discovery.zen.ping.unicast.hosts
               value: {{ include "elasticsearch.masterHosts" . }}
             {{- if has "master" .Values.nodeType }}
