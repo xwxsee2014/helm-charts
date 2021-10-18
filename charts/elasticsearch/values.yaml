@@ -12,6 +12,7 @@ image:
   # Overrides the image tag whose default is the chart appVersion.
   tag: 5.6.16
 
+# support: single-node, cluster
 discoveryType: cluster
 nodeType:
   - master
