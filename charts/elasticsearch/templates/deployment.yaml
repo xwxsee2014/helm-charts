@@ -57,6 +57,7 @@ spec:
           securityContext:
             privileged: true
         - name: install-plugins
+          image: busybox
           command:
           - sh
           - -c
