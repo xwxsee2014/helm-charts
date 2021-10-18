@@ -71,7 +71,7 @@ spec:
               value: {{ include "elasticsearch.masterHosts" . }}
             {{- if has "master" .Values.nodeType }}
             - name: discovery.zen.minimum_master_nodes
-              value: {{ add (div .Values.replicaCount 2 | floor) 1 }}
+              value: {{ add (div .Values.replicaCount 2 | floor) 1 | quote }}
             {{- end }}
             - name: node.master
               value: "{{ has "master" .Values.nodeType }}"
