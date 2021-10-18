@@ -51,6 +51,7 @@ resources:
 
 persistentVolumeClaim:
   # support: local-storage, aws-gp2, longhorn
+  enabled: false
   storageClass: "local-storage"
   storageRequest: 5Gi
 
