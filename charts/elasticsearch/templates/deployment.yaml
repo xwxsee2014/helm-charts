@@ -62,7 +62,7 @@ spec:
           - -c
           - |
             {{- range $key, $val := .Values.plugins }}
-            bin/elasticsearch-plugin install --batch $val
+            bin/elasticsearch-plugin install --batch {{ $val }}
             {{- end}}
       containers:
         - name: {{ .Chart.Name }}
