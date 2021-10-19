@@ -17,3 +17,7 @@ To install the <chart-name> chart:
 To uninstall the chart:
 
     helm delete my-<chart-name>
+
+## Repositories
+
+[Elasticsearch](https://github.com/xwxsee2014/helm-charts/blob/gh-pages/docs/elasticsearch.md)
