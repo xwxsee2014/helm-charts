@@ -32,13 +32,15 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       volumes: 
-        - name: {{ include "elasticsearch.fullname" . }}-storage
+        - name: {{ include "elasticsearch.fullname" . }}-data
           {{- if .Values.persistentVolumeClaim.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "elasticsearch.fullname" . }}
           {{- else }}
           emptyDir: {}
           {{- end }}
+        - name: {{ include "elasticsearch.fullname" . }}-plugins
+          emptyDir: {}
       initContainers:
         - name: increase-the-vm-max-map-count
           image: busybox
@@ -58,6 +60,7 @@ spec:
             privileged: true
         - name: install-plugins
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
           - sh
           - -c
@@ -65,6 +68,10 @@ spec:
             {{- range $key, $val := .Values.plugins }}
             bin/elasticsearch-plugin install --batch {{ $val }}
             {{- end}}
+            cp -r /usr/share/elasticsearch/plugins/* /usr/share/elasticsearch/newplugins
+          volumeMounts:
+            - name: {{ include "elasticsearch.fullname" . }}-plugins
+              mountPath: /usr/share/elasticsearch/newplugins
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -100,8 +107,10 @@ spec:
               value: "{{ has "ingest" .Values.nodeType }}"
             {{- end }}
           volumeMounts:
-            - name: {{ include "elasticsearch.fullname" . }}-storage
+            - name: {{ include "elasticsearch.fullname" . }}-data
               mountPath: /usr/share/elasticsearch/data
+            - name: {{ include "elasticsearch.fullname" . }}-plugins
+              mountPath: /usr/share/elasticsearch/plugins
           ports:
             - name: http
               containerPort: 9200
