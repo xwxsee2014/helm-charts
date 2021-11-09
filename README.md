@@ -21,3 +21,11 @@ To uninstall the chart:
 ## Repositories
 
 [Elasticsearch](https://github.com/xwxsee2014/helm-charts/blob/gh-pages/docs/elasticsearch.md)
+
+## Version Mapping
+
+| Chart       | Elasticsearch |
+| ----------- | -----------   |
+| 0.1.y       | 5.6           |
+| 1.x.y       | 6.x           |
+| 2.x.y       | 7.x           |
