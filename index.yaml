@@ -2,6 +2,19 @@ apiVersion: v1
 entries:
   elasticsearch:
   - apiVersion: v2
+    appVersion: 6.8.20
+    created: "2021-11-10T14:15:32.451701309Z"
+    description: A Helm chart for Elasticsearch depends on ECK Operators
+    digest: 58366fbad0b8b92a65c50ca5fec69cd4d49bb90526b94dc05cd5a41f51b4d4da
+    maintainers:
+    - email: xwxsee@gmail.com
+      name: Wenxing Xu
+    name: elasticsearch
+    type: application
+    urls:
+    - https://github.com/xwxsee2014/helm-charts/releases/download/elasticsearch-1.8.0/elasticsearch-1.8.0.tgz
+    version: 1.8.0
+  - apiVersion: v2
     appVersion: 5.6.16
     created: "2021-10-18T05:53:00.744583314Z"
     description: A Helm chart for old version Elasticsearch
@@ -14,4 +27,4 @@ entries:
     urls:
     - https://github.com/xwxsee2014/helm-charts/releases/download/elasticsearch-0.1.0/elasticsearch-0.1.0.tgz
     version: 0.1.0
-generated: "2021-10-18T09:40:20.184383561Z"
+generated: "2021-11-10T14:15:32.451716309Z"
