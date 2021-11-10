@@ -1,134 +1,83 @@
-apiVersion: apps/v1
-kind: StatefulSet
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
 metadata:
   name: {{ include "elasticsearch.fullname" . }}
-  namespace: {{ include "elasticsearch.name" . }}
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "elasticsearch.labels" . | nindent 4 }}
 spec:
-  serviceName: {{ include "elasticsearch.fullname" . }}
+  version: {{ .Values.version }}
+  nodeSets:
+  {{- $nodeSets := list -}}
   {{- if eq .Values.discoveryType "cluster" }}
-  replicas: {{ .Values.replicaCount }}
+  {{- $nodeSets = .Values.nodeSets -}}
   {{- else }}
-  replicas: 1
+  {{- $nodeSets = list (index .Values.nodeSets 0) -}}
   {{- end }}
-  selector:
-    matchLabels:
-      {{- include "elasticsearch.selectorLabels" . | nindent 6 }}
-  template:
-    metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      labels:
-        {{- include "elasticsearch.selectorLabels" . | nindent 8 }}
-    spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }} 
-      {{- end }}
-      serviceAccountName: {{ include "elasticsearch.serviceAccountName" . }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      volumes: 
-        - name: {{ include "elasticsearch.fullname" . }}-data
-          {{- if .Values.persistentVolumeClaim.enabled }}
-          persistentVolumeClaim:
-            claimName: {{ include "elasticsearch.fullname" . }}
-          {{- else }}
-          emptyDir: {}
-          {{- end }}
-        - name: {{ include "elasticsearch.fullname" . }}-plugins
-          emptyDir: {}
-      initContainers:
-        - name: increase-the-vm-max-map-count
-          image: busybox
-          command:
-          - sysctl
-          - -w
-          - vm.max_map_count=262144
+  {{- range $nodeSets }}
+  {{- if eq $.Values.discoveryType "cluster" }}
+  - name: {{ .name }}
+    count: {{ .count }}
+    config:
+      node.master: {{ has "master" .roles }}
+      node.data: {{ has "data" .roles }}
+      node.ingest: {{ has "ingest" .roles }}
+  {{- else }}
+  - name: single-node
+    count: 1
+  {{- end }}
+    podTemplate:
+      metadata:
+        labels:
+          name: {{ include "elasticsearch.fullname" $ }}-{{ .name }}
+      spec:
+        initContainers:
+        - name: sysctl
           securityContext:
             privileged: true
-        - name: increase-the-ulimit
-          image: busybox
-          command:
-          - sh
-          - -c
-          - ulimit -n 65536
-          securityContext:
-            privileged: true
+          command: ['sh', '-c', 'sysctl -w vm.max_map_count=262144']
         - name: install-plugins
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
           - sh
           - -c
           - |
-            {{- range $key, $val := .Values.plugins }}
+            {{- range $key, $val := $.Values.plugins }}
             bin/elasticsearch-plugin install --batch {{ $val }}
             {{- end}}
-            cp -r /usr/share/elasticsearch/plugins/* /usr/share/elasticsearch/newplugins
-          volumeMounts:
-            - name: {{ include "elasticsearch.fullname" . }}-plugins
-              mountPath: /usr/share/elasticsearch/newplugins
-      containers:
-        - name: {{ .Chart.Name }}
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          env:
-            - name: network.host
-              value: "_site_"
-            - name: node.name
-              value: "${HOSTNAME}"
-            - name: bootstrap_memory_lock
-              value: "true"
-            - name: discovery.type
-              value: {{ .Values.discoveryType | quote }}
-            - name: ES_JAVA_OPTS
-              value: {{ .Values.javaOpts | quote }}
-            - name: cluster.name
-              value: "{{ include "elasticsearch.name" . }}"
-            {{- list .Values.xpack "xpack" | include "recurseFlattenMap" | trim | nindent 12 }}
-            {{- if eq .Values.discoveryType "cluster" }}
-            - name: discovery.zen.ping.unicast.hosts
-              value: {{ include "elasticsearch.masterHosts" . }}
-            {{- if has "master" .Values.nodeType }}
-            - name: discovery.zen.minimum_master_nodes
-              value: {{ add (div .Values.replicaCount 2 | floor) 1 | quote }}
-            {{- end }}
-            - name: node.master
-              value: "{{ has "master" .Values.nodeType }}"
-            - name: node.data
-              value: "{{ has "data" .Values.nodeType }}"
-            - name: node.ingest
-              value: "{{ has "ingest" .Values.nodeType }}"
-            {{- end }}
-          volumeMounts:
-            - name: {{ include "elasticsearch.fullname" . }}-data
-              mountPath: /usr/share/elasticsearch/data
-            - name: {{ include "elasticsearch.fullname" . }}-plugins
-              mountPath: /usr/share/elasticsearch/plugins
-          ports:
-            - name: http
-              containerPort: 9200
-              protocol: TCP
-            - name: tcp
-              containerPort: 9300
-              protocol: TCP
+        containers:
+        - name: elasticsearch
+          {{- with .resources }}
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+          - name: ES_JAVA_OPTS
+            value: {{ .javaOpts | quote }}
+          {{- if eq $.Values.discoveryType "single-node" }}
+          - name: discovery.type
+            value: "single-node"
+          {{- end }}
+          readinessProbe:
+            exec:
+              command:
+              - bash
+              - -c
+              - /mnt/elastic-internal/scripts/readiness-probe-script.sh
+            failureThreshold: {{ $.Values.readinessProbe.failureThreshold }}
+            initialDelaySeconds: {{ $.Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ $.Values.readinessProbe.periodSeconds }}
+            successThreshold: {{ $.Values.readinessProbe.successThreshold }}
+            timeoutSeconds: {{ $.Values.readinessProbe.timeoutSeconds }}
+    {{- if ne $.Values.storageClass ""}}
+    volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .volumeClaim.storageRequest }}
+        storageClassName: {{ $.Values.storageClass | quote }}
+    {{- end }}
+  {{- end }}

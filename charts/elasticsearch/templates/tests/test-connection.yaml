@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "elasticsearch.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "elasticsearch.fullname" . }}:9200']
   restartPolicy: Never

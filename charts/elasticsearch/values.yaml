@@ -4,66 +4,48 @@
 
 environment: test
 
-replicaCount: 3
-
-image:
-  repository: docker.elastic.co/elasticsearch/elasticsearch
-  pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: 5.6.16
+version: 6.8.20
 
 # support: single-node, cluster
 discoveryType: cluster
-nodeType:
-  - master
-  - data
-  - ingest
 
-javaOpts: "-Xms2g -Xmx2g"
+# support: local-storage, aws-gp2, longhorn or empty
+storageClass: ""
 
-xpack:
-  security:
-    enabled: false
-  monitoring:
-    enabled: false
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 300
+  periodSeconds: 10
+  successThreshold: 1
+  timeoutSeconds: 5
+
+nodeSets:
+  - name: master-nodes
+    count: 1
+    roles:
+      - master
+    javaOpts: "-Xms2g -Xmx2g"
+    resources:
+      limits:
+        cpu: 1
+        memory: 4Gi
+    volumeClaim:
+      storageRequest: 5Gi
+  - name: data-nodes
+    count: 2
+    roles:
+      - data
+      - ingest
+    javaOpts: "-Xms2g -Xmx2g"
+    resources:
+      limits:
+        cpu: 1
+        memory: 4Gi
+    volumeClaim:
+      storageRequest: 5Gi
 
 plugins:
   - analysis-phonetic
   - analysis-icu
   - analysis-kuromoji
   - repository-s3
-
-serviceAccount:
-  create: true
-  annotations: {}
-  name: "elasticsearch"
-
-podAnnotations: {}
-
-podSecurityContext:
-  fsGroup: 1000
-
-service:
-  type: ClusterIP
-  httpPort: 9200
-  tcpPort: 9300
-
-ingress:
-  enabled: false
-
-resources:
-  requests:
-    cpu: 500m
-    memory: 1Gi
-
-persistentVolumeClaim:
-  # support: local-storage, aws-gp2, longhorn
-  enabled: false
-  storageClass: "local-storage"
-  storageRequest: 5Gi
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
