@@ -19,9 +19,7 @@ spec:
   - name: {{ .name }}
     count: {{ .count }}
     config:
-      node.master: {{ has "master" .roles }}
-      node.data: {{ has "data" .roles }}
-      node.ingest: {{ has "ingest" .roles }}
+      node.roles: [{{- .roles | include "elasticsearch.nodeRoles" }}]
   {{- else }}
   - name: single-node
     count: 1
