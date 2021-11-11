@@ -29,3 +29,7 @@ To uninstall the chart:
 | 0.1.y       | 5.6           |
 | 1.x.y       | 6.x           |
 | 2.x.y       | 7.x           |
+
+## Notes
+
+From version 1.x.y, the ECK Operator must be installed before deploying this charts. About how to install ECK Operator, please follow the [ECK official instructions](https://www.elastic.co/guide/en/cloud-on-k8s/current/k8s-install-helm.html#k8s-install-helm).
