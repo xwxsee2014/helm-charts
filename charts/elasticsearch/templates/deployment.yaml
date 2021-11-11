@@ -1,92 +1,135 @@
+{{- $nodeSets := list -}}
+{{- if eq .Values.discoveryType "cluster" }}
+{{- $nodeSets = .Values.nodeSets -}}
+{{- else }}
+{{- $nodeSets = list (index .Values.nodeSets 0) -}}
+{{- end }}
+{{- range $nodeSets }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "elasticsearch.fullname" . }}
-  namespace: {{ include "elasticsearch.name" . }}
+  name: {{ include "elasticsearch.fullname" $ }}-{{ .name }}
+  namespace: {{ $.Release.Namespace }}
   labels:
-    {{- include "elasticsearch.labels" . | nindent 4 }}
+    {{- include "elasticsearch.labels" $ | nindent 4 }}
+    {{- include "elasticsearch.clientLabels" .roles | nindent 4 }}
 spec:
-  serviceName: {{ include "elasticsearch.fullname" . }}
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
-      {{- include "elasticsearch.selectorLabels" . | nindent 6 }}
+      {{- include "elasticsearch.selectorLabels" $ | nindent 6 }}
+      elasticsearch/sets-name: {{ .name }}
+  serviceName: {{ include "elasticsearch.fullname" $ }}-{{ .name }}
+  replicas: {{ .count }}
+  {{- if ne $.Values.storageClass ""}}
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ $.Chart.Name }}-data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .volumeClaim.storageRequest }}
+      storageClassName: {{ $.Values.storageClass | quote }}
+  {{- end }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "elasticsearch.selectorLabels" . | nindent 8 }}
+        {{- include "elasticsearch.selectorLabels" $ | nindent 8 }}
+        {{- include "elasticsearch.clientLabels" .roles | nindent 8 }}
+        elasticsearch/sets-name: {{ .name }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }} 
-      {{- end }}
-      serviceAccountName: {{ include "elasticsearch.serviceAccountName" . }}
+      serviceAccountName: {{ include "elasticsearch.serviceAccountName" $ }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      volumes:
+      {{- if eq $.Values.storageClass ""}}
+      - name: {{ $.Chart.Name }}-data
+        emptyDir: {}
+      {{- end }}
+      - name: {{ $.Chart.Name }}-plugins
+        emptyDir: {}
       initContainers:
-        - name: increase-the-vm-max-map-count
-          image: busybox
-          command:
-          - sysctl
-          - -w
-          - vm.max_map_count=262144
-          securityContext:
-            privileged: true
-        - name: increase-the-ulimit
-          image: busybox
-          command:
-          - sh
-          - -c
-          - ulimit -n 65536
-          securityContext:
-            privileged: true
+      - name: increase-the-vm-max-map-count
+        image: busybox
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=262144
+        securityContext:
+          privileged: true
+      - name: increase-the-ulimit
+        image: busybox
+        command:
+        - sh
+        - -c
+        - ulimit -n 65536
+        securityContext:
+          privileged: true
+      - name: install-plugins
+        image: "docker.elastic.co/elasticsearch/elasticsearch:{{ $.Values.version }}"
+        imagePullPolicy: IfNotPresent
+        command:
+        - sh
+        - -c
+        - |
+          {{- range $key, $val := $.Values.plugins }}
+          bin/elasticsearch-plugin install --batch {{ $val }}
+          {{- end}}
+          cp -r /usr/share/elasticsearch/plugins/* /usr/share/elasticsearch/newplugins
+        volumeMounts:
+        - name: {{ $.Chart.Name }}-plugins
+          mountPath: /usr/share/elasticsearch/newplugins
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ $.Chart.Name }}
+          {{- with $.Values.securityContext }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "docker.elastic.co/elasticsearch/elasticsearch:{{ $.Values.version }}"
+          imagePullPolicy: IfNotPresent
           env:
-            - name: network.host
-              value: "_site_"
-            - name: node.name
-              value: "${HOSTNAME}"
-            - name: bootstrap_memory_lock
-              value: "true"
-            - name: discovery.type
-              value: {{ .Values.discoveryType | quote }}
-            - name: ES_JAVA_OPTS
-              value: {{ .Values.javaOpts | quote }}
-            - name: cluster.name
-              value: "{{ include "elasticsearch.name" . }}"
-            {{- if eq .Values.discoveryType "cluster" }}
-            {{- list .Values.xpack "xpack" | include "recurseFlattenMap" | trim | nindent 12 }}
-            - name: discovery.zen.ping.unicast.hosts
-              value: {{ include "elasticsearch.masterHosts" . }}
-            {{- if has "master" .Values.nodeType }}
-            - name: discovery.zen.minimum_master_nodes
-              value: {{ add (div .Values.replicaCount 2 | floor) 1 }}
-            {{- end }}
-            - name: node.master
-              value: "{{ has "master" .Values.nodeType }}"
-            - name: node.data
-              value: "{{ has "data" .Values.nodeType }}"
-            - name: node.ingest
-              value: "{{ has "ingest" .Values.nodeType }}"
-            {{- end }}
+          - name: network.host
+            value: "_site_"
+          - name: node.name
+            value: "${HOSTNAME}"
+          - name: bootstrap_memory_lock
+            value: "true"
+          {{- if eq $.Values.discoveryType "single-node" }}
+          - name: discovery.type
+            value: "single-node"
+          {{- end }}
+          - name: ES_JAVA_OPTS
+            value: {{ .javaOpts | quote }}
+          - name: cluster.name
+            value: "{{ include "elasticsearch.name" $ }}"
+          {{- list $.Values.xpack "xpack" | include "recurseFlattenMap" | trim | nindent 10 }}
+          {{- if eq $.Values.discoveryType "cluster" }}
+          - name: discovery.zen.ping.unicast.hosts
+            value: {{ include "elasticsearch.joinMasterHosts" $ }}
+          {{- if has "master" .roles }}
+          - name: discovery.zen.minimum_master_nodes
+            value: {{ add (div (include "elasticsearch.countMasterHosts" $) 2 | floor) 1 }}
+          {{- end }}
+          - name: node.master
+            value: "{{ has "master" .roles }}"
+          - name: node.data
+            value: "{{ has "data" .roles }}"
+          - name: node.ingest
+            value: "{{ has "ingest" .roles }}"
+          {{- end }}
+          volumeMounts:
+          - name: {{ $.Chart.Name }}-data
+            mountPath: /usr/share/elasticsearch/data
+          - name: {{ $.Chart.Name }}-plugins
+            mountPath: /usr/share/elasticsearch/plugins
           ports:
-            - name: http
-              containerPort: 9200
-              protocol: TCP
-            - name: tcp
-              containerPort: 9300
-              protocol: TCP
+          - name: http
+            containerPort: 9200
+            protocol: TCP
+          - name: tcp
+            containerPort: 9300
+            protocol: TCP
           livenessProbe:
             httpGet:
               path: /
@@ -96,16 +139,5 @@ spec:
               path: /
               port: 9200
           resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+            {{- toYaml .resources | nindent 12 }}
+{{- end }}

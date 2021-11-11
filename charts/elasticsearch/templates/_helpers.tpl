@@ -51,6 +51,24 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Client labels
+*/}}
+{{- define "elasticsearch.clientLabels" -}}
+{{- if and (eq (len .) 1) (or (eq (index . 0) "master") (eq (index . 0) "ingest"))}}
+elasticsearch/client-eligible: "false"
+{{- else }}
+{{- include "elasticsearch.clientSelectorLabels" . }}
+{{- end }}
+{{- end }}
+
+{{/*
+Client selector labels
+*/}}
+{{- define "elasticsearch.clientSelectorLabels" -}}
+elasticsearch/client-eligible: "true"
+{{- end }}
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "elasticsearch.serviceAccountName" -}}
@@ -63,13 +81,30 @@ Create the name of the service account to use
 
 {{/*
 */}}
-{{- define "elasticsearch.masterHosts" -}}
-{{- $fullName := (include "elasticsearch.fullname" .) -}}
+{{- define "elasticsearch.joinMasterHosts" -}}
 {{- $masterList := list -}}
-{{- range $key, $val := until (.Values.replicaCount | int) }}
+{{- range $.Values.nodeSets }}
+{{- if has "master" .roles }}
+{{- $fullName := printf "%s-%s" (include "elasticsearch.fullname" $) .name -}}
+{{- range $key, $val := until (.count | int) }}
 {{- $masterList = printf "%s-%d" $fullName $val | append $masterList -}}
 {{- end }}
+{{- end }}
+{{- end }}
 {{- join "," $masterList | quote }}
+{{- end }}
+
+{{- define "elasticsearch.countMasterHosts" -}}
+{{- $masterList := list -}}
+{{- range $.Values.nodeSets }}
+{{- if has "master" .roles }}
+{{- $fullName := printf "%s-%s" (include "elasticsearch.fullname" $) .name -}}
+{{- range $key, $val := until (.count | int) }}
+{{- $masterList = printf "%s-%d" $fullName $val | append $masterList -}}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- len $masterList }}
 {{- end }}
 
 {{/*
