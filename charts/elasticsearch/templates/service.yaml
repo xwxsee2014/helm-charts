@@ -17,3 +17,4 @@ spec:
       name: tcp
   selector:
     {{- include "elasticsearch.selectorLabels" . | nindent 4 }}
+    {{- include "elasticsearch.clientSelectorLabels" . | nindent 4 }}

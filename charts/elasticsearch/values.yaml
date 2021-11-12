@@ -14,7 +14,7 @@ storageClass: ""
 
 nodeSets:
   - name: master-nodes
-    count: 3
+    count: 1
     roles:
       - master
     javaOpts: "-Xms2g -Xmx2g"
@@ -24,18 +24,18 @@ nodeSets:
         memory: 4Gi
     volumeClaim:
       storageRequest: 5Gi
-  # - name: data-nodes
-  #   count: 2
-  #   roles:
-  #     - data
-  #     - ingest
-  #   javaOpts: "-Xms2g -Xmx2g"
-  #   resources:
-  #     limits:
-  #       cpu: 1
-  #       memory: 4Gi
-  #   volumeClaim:
-  #     storageRequest: 5Gi
+  - name: data-nodes
+    count: 2
+    roles:
+      - data
+      - ingest
+    javaOpts: "-Xms2g -Xmx2g"
+    resources:
+      limits:
+        cpu: 1
+        memory: 4Gi
+    volumeClaim:
+      storageRequest: 5Gi
 
 xpack:
   security:

@@ -54,10 +54,10 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Client labels
 */}}
 {{- define "elasticsearch.clientLabels" -}}
-{{- if and (eq (len .) 1) (or (eq (index . 0) "master") (eq (index . 0) "ingest"))}}
+{{- if and (eq (len .) 1) (or (eq (index . 0) "master") (eq (index . 0) "ingest")) -}}
 elasticsearch/client-eligible: "false"
-{{- else }}
-{{- include "elasticsearch.clientSelectorLabels" . }}
+{{- else -}}
+elasticsearch/client-eligible: "true"
 {{- end }}
 {{- end }}
 
@@ -94,17 +94,14 @@ Create the name of the service account to use
 {{- join "," $masterList | quote }}
 {{- end }}
 
-{{- define "elasticsearch.countMasterHosts" -}}
-{{- $masterList := list -}}
+{{- define "elasticsearch.minMasterNodes" -}}
+{{- $masterCount := 0 -}}
 {{- range $.Values.nodeSets }}
 {{- if has "master" .roles }}
-{{- $fullName := printf "%s-%s" (include "elasticsearch.fullname" $) .name -}}
-{{- range $key, $val := until (.count | int) }}
-{{- $masterList = printf "%s-%d" $fullName $val | append $masterList -}}
+{{- $masterCount = add $masterCount .count -}}
 {{- end }}
 {{- end }}
-{{- end }}
-{{- len $masterList }}
+{{- add (div $masterCount 2 | floor) 1 }}
 {{- end }}
 
 {{/*

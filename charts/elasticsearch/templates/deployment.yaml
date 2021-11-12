@@ -102,14 +102,14 @@ spec:
           - name: ES_JAVA_OPTS
             value: {{ .javaOpts | quote }}
           - name: cluster.name
-            value: "{{ include "elasticsearch.name" $ }}"
+            value: "{{ include "elasticsearch.fullname" $ }}"
           {{- list $.Values.xpack "xpack" | include "recurseFlattenMap" | trim | nindent 10 }}
           {{- if eq $.Values.discoveryType "cluster" }}
           - name: discovery.zen.ping.unicast.hosts
             value: {{ include "elasticsearch.joinMasterHosts" $ }}
           {{- if has "master" .roles }}
           - name: discovery.zen.minimum_master_nodes
-            value: {{ add (div (include "elasticsearch.countMasterHosts" $) 2 | floor) 1 }}
+            value: {{ include "elasticsearch.minMasterNodes" $ }}
           {{- end }}
           - name: node.master
             value: "{{ has "master" .roles }}"
