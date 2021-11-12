@@ -2,7 +2,7 @@ apiVersion: v2
 name: elasticsearch
 description: A Helm chart for Elasticsearch depends on ECK Operators
 type: application
-version: 2.15.0
+version: 0.1.1
 # This is the version number of the Elasticsearch
 appVersion: "7.15.2"
 maintainers:

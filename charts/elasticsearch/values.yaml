@@ -4,20 +4,13 @@
 
 environment: test
 
-version: 7.15.2
+version: 5.6.16
 
 # support: single-node, cluster
 discoveryType: cluster
 
 # support: local-storage, aws-gp2, longhorn or empty
 storageClass: ""
-
-readinessProbe:
-  failureThreshold: 3
-  initialDelaySeconds: 300
-  periodSeconds: 10
-  successThreshold: 1
-  timeoutSeconds: 5
 
 nodeSets:
   - name: master-nodes
@@ -44,8 +37,30 @@ nodeSets:
     volumeClaim:
       storageRequest: 5Gi
 
+xpack:
+  security:
+    enabled: false
+  monitoring:
+    enabled: false
+
 plugins:
   - analysis-phonetic
   - analysis-icu
   - analysis-kuromoji
   - repository-s3
+
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  httpPort: 9200
+  tcpPort: 9300
+
+serviceAccount:
+  create: true
+
+ingress:
+  enabled: false
