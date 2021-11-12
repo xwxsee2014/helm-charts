@@ -106,6 +106,16 @@ Create the name of the service account to use
 
 {{/*
 */}}
+{{- define "elasticsearch.nodeRoles" -}}
+{{- $roleList := list -}}
+{{- range . }}
+{{- $roleList = . | quote | append $roleList  -}}
+{{- end }}
+{{- join "," $roleList }}
+{{- end }}
+
+{{/*
+*/}}
 {{- define "recurseFlattenMap" -}}
 {{- $map := first . -}}
 {{- $label := last . -}}
